@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\Catalog\CatalogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LookupController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PrescriptionController;
@@ -31,6 +32,13 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('/', DashboardController::class)->name('dashboard');
+
+    // Lightweight JSON lookups for modals that open on demand.
+    Route::prefix('lookups')->name('lookups.')->controller(LookupController::class)->group(function () {
+        Route::get('/services', 'services')->name('services');
+        Route::get('/payment-types', 'paymentTypes')->name('payment-types');
+        Route::get('/drug-variants', 'drugVariants')->name('drug-variants');
+    });
 
     // ── Patients ─────────────────────────────────────────────────────────
     Route::get('/patients/search', [PatientController::class, 'search'])->name('patients.search');

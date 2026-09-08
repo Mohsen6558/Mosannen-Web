@@ -1,4 +1,4 @@
-import jalaali from 'jalaali-js';
+import { isValidJalaaliDate, jalaaliMonthLength, toGregorian as gregorianOf, toJalaali } from 'jalaali-js';
 import { toEnglishDigits, toPersianDigits } from '@/Support/format';
 
 export const MONTH_NAMES = [
@@ -20,12 +20,12 @@ export function toJalali(iso) {
     if (!iso) return null;
     const d = iso instanceof Date ? iso : new Date(String(iso).slice(0, 10) + 'T00:00:00');
     if (Number.isNaN(d.getTime())) return null;
-    const { jy, jm, jd } = jalaali.toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    const { jy, jm, jd } = toJalaali(d.getFullYear(), d.getMonth() + 1, d.getDate());
     return { jy, jm, jd };
 }
 
 export function toGregorian(jy, jm, jd) {
-    const { gy, gm, gd } = jalaali.toGregorian(jy, jm, jd);
+    const { gy, gm, gd } = gregorianOf(jy, jm, jd);
     return `${gy}-${pad(gm)}-${pad(gd)}`;
 }
 
@@ -62,13 +62,13 @@ export function parseJalali(input) {
     const parts = toEnglishDigits(String(input)).split(/[/\-.]/).map(Number);
     if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
     const [jy, jm, jd] = parts;
-    if (!jalaali.isValidJalaaliDate(jy, jm, jd)) return null;
+    if (!isValidJalaaliDate(jy, jm, jd)) return null;
     return toGregorian(jy, jm, jd);
 }
 
 export function todayJalali() {
     const now = new Date();
-    return jalaali.toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    return toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
 }
 
 export function todayIso() {
@@ -77,12 +77,12 @@ export function todayIso() {
 }
 
 export function daysInJalaliMonth(jy, jm) {
-    return jalaali.jalaaliMonthLength(jy, jm);
+    return jalaaliMonthLength(jy, jm);
 }
 
 /** Weekday index (0 = Saturday) of the 1st of a Jalali month. */
 export function firstWeekdayOfMonth(jy, jm) {
-    const { gy, gm, gd } = jalaali.toGregorian(jy, jm, 1);
+    const { gy, gm, gd } = gregorianOf(jy, jm, 1);
     return (new Date(gy, gm - 1, gd).getDay() + 1) % 7;
 }
 

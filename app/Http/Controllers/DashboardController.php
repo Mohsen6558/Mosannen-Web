@@ -27,7 +27,7 @@ class DashboardController extends Controller
                 'patients_total' => Patient::count(),
                 'patients_new_this_month' => Patient::where('registered_on', '>=', $monthStart)->count(),
                 'treatments_today' => Treatment::whereDate('performed_on', $today)->count(),
-                'appointments_today' => Appointment::on($today)->whereIn('status', ['scheduled', 'confirmed'])->count(),
+                'appointments_today' => Appointment::onDate($today)->whereIn('status', ['scheduled', 'confirmed'])->count(),
 
                 'income_today' => $canSeeMoney ? (int) Payment::whereDate('paid_on', $today)->sum('amount') : null,
                 'income_month' => $canSeeMoney ? (int) Payment::where('paid_on', '>=', $monthStart)->sum('amount') : null,
@@ -42,7 +42,7 @@ class DashboardController extends Controller
 
             'topServices' => $this->topServices($monthStart),
 
-            'todayAppointments' => Appointment::on($today)
+            'todayAppointments' => Appointment::onDate($today)
                 ->with('patient:id,code,first_name,last_name,mobile')
                 ->orderBy('starts_at')
                 ->get()

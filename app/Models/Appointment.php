@@ -43,7 +43,13 @@ class Appointment extends Model
         return $this->belongsTo(TreatmentService::class, 'treatment_service_id');
     }
 
-    public function scopeOn(Builder $q, string $date): Builder
+    /**
+     * Appointments on a given date.
+     *
+     * Deliberately not named `scopeOn`: Eloquent already defines a static
+     * `on($connection)` and the scope would never be reached.
+     */
+    public function scopeOnDate(Builder $q, string $date): Builder
     {
         return $q->whereDate('scheduled_on', $date);
     }

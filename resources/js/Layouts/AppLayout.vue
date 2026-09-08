@@ -30,6 +30,7 @@ const NAV = [
     {
         heading: 'درمانگاه',
         items: [
+            { name: 'نوبت‌دهی', route: 'appointments.index', icon: 'calendar', permission: 'appointments.view' },
             { name: 'پرونده بیماران', route: 'patients.index', icon: 'users', permission: 'patients.view' },
             { name: 'درمان‌ها', route: 'treatments.index', icon: 'tooth', permission: 'treatments.view' },
             { name: 'پرداخت‌ها', route: 'payments.index', icon: 'wallet', permission: 'payments.view' },
@@ -58,6 +59,7 @@ const NAV = [
 ];
 
 const ICONS = {
+    calendar: 'M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
     grid: 'M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z',
     users: 'M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.3-.36-1.86m0 0A5 5 0 007 18v2m10-8a3 3 0 11-6 0 3 3 0 016 0zm6-3a2 2 0 11-4 0 2 2 0 014 0zM7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.3.36-1.86m0 0a5 5 0 00-5.36 1.86M7 9a2 2 0 11-4 0 2 2 0 014 0z',
     tooth: 'M12 3c-2.2 0-3 1-4.5 1S5 3.4 4.2 4.6C3.2 6.1 3.6 8.6 4.3 11c.6 2 .7 3.4.9 5.2.2 1.7.5 3.8 1.9 3.8 1.3 0 1.5-1.6 1.8-3.4.3-1.8.6-3.1 1.6-3.1s1.3 1.3 1.6 3.1c.3 1.8.5 3.4 1.8 3.4 1.4 0 1.7-2.1 1.9-3.8.2-1.8.3-3.2.9-5.2.7-2.4 1.1-4.9.1-6.4C17.5 3.4 16 4 14.5 4S14.2 3 12 3z',
@@ -112,7 +114,7 @@ function logout() {
             class="fixed inset-y-0 start-0 z-50 flex flex-col border-e border-surface-200 bg-white transition-[width,transform] duration-200 dark:border-surface-800 dark:bg-surface-900"
             :class="[
                 collapsed ? 'w-[68px]' : 'w-64',
-                mobileOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0',
+                mobileOpen ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full lg:translate-x-0 lg:rtl:translate-x-0',
             ]"
         >
             <div class="flex h-16 shrink-0 items-center gap-2.5 border-b border-surface-200 px-4 dark:border-surface-800">
@@ -173,7 +175,7 @@ function logout() {
         </aside>
 
         <!-- Main -->
-        <div class="transition-[padding] duration-200" :class="collapsed ? 'lg:pe-[68px]' : 'lg:pe-64'">
+        <div class="transition-[padding] duration-200" :class="collapsed ? 'lg:ps-[68px]' : 'lg:ps-64'">
             <header
                 class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-surface-200 bg-surface-50/80 px-4 backdrop-blur-md sm:px-6 dark:border-surface-800 dark:bg-surface-950/80"
             >
@@ -187,11 +189,9 @@ function logout() {
                 </button>
 
                 <div class="min-w-0 flex-1">
-                    <slot name="header">
-                        <h1 class="truncate text-base font-semibold text-ink-900 dark:text-ink-50">
-                            {{ $page.props.title ?? '' }}
-                        </h1>
-                    </slot>
+                    <p class="truncate text-sm font-medium text-ink-700 dark:text-ink-100">
+                        {{ clinic.name || 'سامانه مدیریت کلینیک' }}
+                    </p>
                 </div>
 
                 <p class="hidden text-xs text-ink-500 md:block">{{ today }}</p>

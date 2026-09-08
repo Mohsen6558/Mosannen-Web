@@ -3,23 +3,33 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            PermissionSeeder::class,
+            SmsTemplateSeeder::class,
         ]);
+
+        // A first administrator, so a fresh install is reachable.
+        $admin = User::firstOrCreate(
+            ['username' => 'admin'],
+            [
+                'name' => 'مدیر سیستم',
+                'full_name' => 'مدیر سیستم',
+                'password' => 'password',
+                'is_active' => true,
+                'must_change_password' => true,
+            ],
+        );
+
+        $admin->syncRoles(['admin']);
+
+        if (app()->environment('local', 'testing')) {
+            $this->call(DemoDataSeeder::class);
+        }
     }
 }

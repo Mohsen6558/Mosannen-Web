@@ -26,7 +26,7 @@ class AppointmentController extends Controller implements HasMiddleware
 
         return Inertia::render('Appointments/Index', [
             'date' => $date,
-            'appointments' => Appointment::on($date)
+            'appointments' => Appointment::onDate($date)
                 ->with(['patient:id,code,first_name,last_name,mobile', 'user:id,full_name,name', 'service:id,name'])
                 ->orderBy('starts_at')
                 ->get()
