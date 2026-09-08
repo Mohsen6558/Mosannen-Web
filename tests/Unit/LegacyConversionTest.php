@@ -1,5 +1,6 @@
 <?php
 
+use App\Rules\IranNationalCode;
 use App\Support\JalaliDate;
 use App\Support\Permissions;
 use App\Support\Teeth;
@@ -126,6 +127,29 @@ describe('legacy permission mapping', function () {
     it('never grants a permission name twice within a role', function () {
         foreach (Permissions::roles() as $role => $granted) {
             expect($granted)->toBe(array_values(array_unique($granted)), "role {$role} has duplicates");
+        }
+    });
+});
+
+describe('iranian national code', function () {
+    it('accepts valid codes', function () {
+        // Known-good checksums.
+        foreach (['0499370899', '0790419904', '0084575948', '2065432195', '1378945611'] as $code) {
+            $fails = [];
+            (new IranNationalCode)->validate('national_code', $code, function ($m) use (&$fails) {
+                $fails[] = $m;
+            });
+            expect($fails)->toBeEmpty();
+        }
+    });
+
+    it('rejects bad checksums, wrong lengths and repdigits', function () {
+        foreach (['0499370898', '123456789', '12345678901', '1111111111', '0000000000', '1111111112'] as $code) {
+            $fails = [];
+            (new IranNationalCode)->validate('national_code', $code, function ($m) use (&$fails) {
+                $fails[] = $m;
+            });
+            expect($fails)->not->toBeEmpty("code {$code} should be rejected");
         }
     });
 });

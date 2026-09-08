@@ -100,8 +100,8 @@ final class Teeth
      * Translate a whole legacy `ToothName` value into FDI codes.
      *
      * @return array{teeth: list<string>, flags: list<string>}
-     *         `flags` collects non-tooth markers (currently only "bitewing")
-     *         so the importer can preserve them in the record's notes.
+     *                                                         `flags` collects non-tooth markers (currently only "bitewing")
+     *                                                         so the importer can preserve them in the record's notes.
      */
     public static function fromLegacyString(?string $value): array
     {

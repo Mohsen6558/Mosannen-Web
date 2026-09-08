@@ -20,8 +20,10 @@ use App\Support\JalaliDate;
 use App\Support\Permissions;
 use App\Support\Teeth;
 use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -156,7 +158,7 @@ class LegacyImporter
             return;
         }
 
-        /** @var \Illuminate\Database\Eloquent\Model $model */
+        /** @var Model $model */
         $existing = $model::query()->where('legacy_id', $legacyId)->first();
 
         if ($existing) {
@@ -171,7 +173,6 @@ class LegacyImporter
         $this->report->imported($bucket);
         $this->map[$bucket][$legacyId] = $created->getKey();
     }
-
 
     // ── Reference data ───────────────────────────────────────────────────
 
@@ -395,7 +396,6 @@ class LegacyImporter
         $user->syncPermissions($granted);
     }
 
-
     // ── Clinical data ────────────────────────────────────────────────────
 
     private function importPatients(): void
@@ -611,7 +611,6 @@ class LegacyImporter
         });
     }
 
-
     // ── Radiography ──────────────────────────────────────────────────────
 
     /**
@@ -679,7 +678,7 @@ class LegacyImporter
                     $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION) ?: 'jpg');
                     $path = 'radiographs/'.substr($takenOn, 0, 7).'/'.Str::uuid()->toString().'.'.$extension;
 
-                    \Illuminate\Support\Facades\Storage::disk($disk)->put($path, file_get_contents($source));
+                    Storage::disk($disk)->put($path, file_get_contents($source));
 
                     $attributes['path'] = $path;
                     $attributes['size'] = filesize($source) ?: null;

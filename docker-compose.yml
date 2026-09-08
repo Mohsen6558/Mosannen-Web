@@ -1,0 +1,167 @@
+# Mosannen — clinic management system
+#
+# Every service uses a ready-made public image; there is no custom Dockerfile
+# to build or maintain. Configuration is injected through environment
+# variables and bind-mounted config files.
+#
+#   cp .env.example .env
+#   docker compose up -d
+#   docker compose exec app php artisan key:generate
+#   docker compose exec app php artisan migrate --seed
+#
+# Optional profiles:
+#   --profile s3     MinIO, when radiography images should live in object
+#                    storage instead of a folder on this host
+#   --profile dev    Vite dev server with hot reload
+
+services:
+  app:
+    # serversideup/php bundles nginx + php-fpm and every extension Laravel
+    # needs (pdo_pgsql, redis, gd, intl, zip, bcmath, opcache), so the
+    # application runs straight from the image.
+    image: ${APP_IMAGE:-serversideup/php:8.4-fpm-nginx}
+    container_name: mosannen-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-mosannen.ini:ro
+      - images:/var/www/html/storage/app/images
+      - backups:/var/www/html/storage/app/backups
+    environment:
+      SSL_MODE: "off"
+      PHP_OPCACHE_ENABLE: "1"
+      AUTORUN_ENABLED: "true"
+      # Migrations are run deliberately, never on container start: an
+      # unattended migration against clinic data is not something to
+      # discover after the fact.
+      AUTORUN_LARAVEL_MIGRATION: "false"
+      AUTORUN_LARAVEL_STORAGE_LINK: "true"
+      AUTORUN_LARAVEL_CONFIG_CACHE: "true"
+      AUTORUN_LARAVEL_ROUTE_CACHE: "true"
+      AUTORUN_LARAVEL_VIEW_CACHE: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - mosannen
+
+  # SMS delivery and thumbnail generation run off the request cycle.
+  queue:
+    image: ${APP_IMAGE:-serversideup/php:8.4-fpm-nginx}
+    container_name: mosannen-queue
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "queue:work", "--tries=3", "--max-time=3600", "--sleep=3"]
+    volumes:
+      - ./:/var/www/html
+      - images:/var/www/html/storage/app/images
+    environment:
+      AUTORUN_ENABLED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - mosannen
+
+  # Appointment reminders and the nightly database backup.
+  scheduler:
+    image: ${APP_IMAGE:-serversideup/php:8.4-fpm-nginx}
+    container_name: mosannen-scheduler
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    volumes:
+      - ./:/var/www/html
+      - backups:/var/www/html/storage/app/backups
+    environment:
+      AUTORUN_ENABLED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mosannen
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    container_name: mosannen-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-mosannen}
+      POSTGRES_USER: ${DB_USERNAME:-mosannen}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      # ICU collation so ORDER BY sorts Persian names correctly.
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=fa-IR --encoding=UTF8"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-mosannen} -d ${DB_DATABASE:-mosannen}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - mosannen
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    container_name: mosannen-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redisdata:/data
+    networks:
+      - mosannen
+
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:latest}
+    container_name: mosannen-minio
+    restart: unless-stopped
+    profiles: ["s3"]
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${IMAGES_S3_KEY:-mosannen}
+      MINIO_ROOT_PASSWORD: ${IMAGES_S3_SECRET:-secret12345}
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - mosannen
+
+  vite:
+    image: ${NODE_IMAGE:-node:22-alpine}
+    container_name: mosannen-vite
+    profiles: ["dev"]
+    working_dir: /app
+    command: ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0"]
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - ./:/app
+    environment:
+      VITE_HMR_HOST: ${VITE_HMR_HOST:-localhost}
+    networks:
+      - mosannen
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  images:
+  backups:
+
+networks:
+  mosannen:
+    driver: bridge

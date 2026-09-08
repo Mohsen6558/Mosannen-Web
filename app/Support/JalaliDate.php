@@ -17,6 +17,7 @@ use Morilog\Jalali\Jalalian;
 final class JalaliDate
 {
     private const FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+
     private const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 
     /** Normalise Persian/Arabic digits to ASCII. */
