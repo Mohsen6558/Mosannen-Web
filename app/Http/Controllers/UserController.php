@@ -27,7 +27,9 @@ class UserController extends Controller implements HasMiddleware
     public function index(): Response
     {
         return Inertia::render('Users/Index', [
-            'users' => User::with('roles:id,name')
+            // `permissions` is eager loaded too: getDirectPermissions() reads it,
+            // and lazy loading is a hard error outside production.
+            'users' => User::with(['roles:id,name', 'permissions:id,name'])
                 ->orderBy('username')
                 ->get(['id', 'username', 'name', 'full_name', 'email', 'is_active', 'must_change_password', 'last_login_at'])
                 ->map(fn (User $u) => [

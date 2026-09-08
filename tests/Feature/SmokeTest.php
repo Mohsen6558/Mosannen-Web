@@ -16,6 +16,14 @@ beforeEach(function () {
     ]);
 
     $this->admin->assignRole('admin');
+
+    // A second user with direct permissions, so list screens are exercised
+    // with more than the authenticated row — that is what surfaces lazy
+    // loading violations on eager-loaded relations.
+    User::factory()->create(['username' => 'nurse'])
+        ->syncPermissions(['patients.view', 'treatments.view']);
+
+    User::factory()->create(['username' => 'doc'])->assignRole('doctor');
 });
 
 it('redirects guests to the login page', function () {

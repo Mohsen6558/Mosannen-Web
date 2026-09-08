@@ -1,58 +1,186 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# مسنن — سامانه مدیریت کلینیک دندانپزشکی
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+بازنویسی تحت وب نرم‌افزار دسکتاپ **Mosanen** (VB.NET / WinForms) با
+Laravel، Inertia، Vue 3 و PostgreSQL.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## راه‌اندازی سریع
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+cp .env.example .env
+docker compose up -d
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --seed
+docker compose run --rm vite npm install && docker compose run --rm vite npm run build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+سپس <http://localhost:8080> — نام کاربری `admin` و رمز `password`
+(در اولین ورود باید تغییر کند).
 
-## Contributing
+یا با `make`:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+make install     # نصب کامل
+make up          # اجرا
+make logs        # مشاهده لاگ‌ها
+make test        # اجرای تست‌ها
+make import-dry  # تمرین مهاجرت داده بدون نوشتن
+```
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## معماری
 
-## Security Vulnerabilities
+| لایه | فناوری |
+|---|---|
+| بک‌اند | Laravel 13 (PHP 8.4) |
+| فرانت‌اند | Vue 3 + Inertia + Tailwind 4، تمام‌RTL |
+| دیتابیس | PostgreSQL 16 (کولیشن `fa-IR`، افزونه‌های `pg_trgm` و `unaccent`) |
+| صف و کش | Redis |
+| فایل‌ها | دیسک محلی یا S3/MinIO — با یک متغیر محیطی جابه‌جا می‌شود |
+| استقرار | Docker، فقط با ایمیج‌های آماده — بدون Dockerfile سفارشی |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### سرویس‌های Docker
 
-## License
+| سرویس | ایمیج | نقش |
+|---|---|---|
+| `app` | `serversideup/php:8.4-fpm-nginx` | nginx + php-fpm |
+| `queue` | همان | کارگر صف (پیامک، بندانگشتی) |
+| `scheduler` | همان | پشتیبان‌گیری شبانه، یادآوری نوبت |
+| `postgres` | `postgres:16-alpine` | دیتابیس |
+| `redis` | `redis:7-alpine` | کش و صف |
+| `minio` | `minio/minio` | اختیاری — پروفایل `s3` |
+| `vite` | `node:22-alpine` | اختیاری — پروفایل `dev` |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+docker compose --profile s3 up -d      # با MinIO
+docker compose --profile dev up -d     # با hot reload
+```
+
+مهاجرت‌ها **به‌صورت خودکار هنگام بالا آمدن کانتینر اجرا نمی‌شوند**؛ اجرای
+ناخواسته‌ی migration روی داده‌ی بیماران چیزی نیست که بعداً بفهمید.
+
+---
+
+## ماژول‌ها
+
+پرونده بیماران · درمان با نمودار دندان · مالی و تخفیف · بیمه · عکس‌برداری ·
+نسخه و تجویز دارو · انبار · پیامک · گزارش‌ها · نوبت‌دهی¹ · کاربران و
+سطوح دسترسی · گزارش فعالیت‌ها¹
+
+<sub>¹ در نسخه‌ی قدیمی وجود نداشت.</sub>
+
+---
+
+## مهاجرت داده از سیستم قدیمی
+
+```bash
+# ۱) اتصال به SQL Server قدیمی را در .env تنظیم کنید
+LEGACY_DB_HOST=192.168.1.10
+LEGACY_DB_DATABASE=azarbazak
+LEGACY_DB_USERNAME=sa
+LEGACY_DB_PASSWORD=...
+LEGACY_IMAGES_PATH=/legacy-images   # مسیر mount شده‌ی \\server\AppIMG\
+
+# ۲) تمرین بدون نوشتن — گزارش کامل می‌دهد
+php artisan legacy:import --dry-run
+
+# ۳) اجرای واقعی
+php artisan legacy:import
+```
+
+**نکته:** افزونه‌ی `pdo_sqlsrv` باید روی PHP نصب باشد.
+
+### ویژگی‌های مهم فرمان
+
+- **بی‌خطر در اجرای مکرر** — هر رکورد کلید اصلی قدیمی‌اش را در `legacy_id`
+  نگه می‌دارد، پس اجرای دوم به‌جای تکرار، به‌روزرسانی می‌کند. یعنی می‌توانید
+  یک بار تمرینی و یک بار نهایی (delta) در لحظه‌ی سوییچ اجرا کنید.
+- **تراکنش واحد** — خطا در وسط کار، نیمی از بیماران را جا نمی‌گذارد.
+- **رکورد خراب، کل کار را متوقف نمی‌کند** — شمرده و در گزارش با دلیل
+  گزارش می‌شود.
+- `--only=patients,treatments` برای اجرای مرحله‌ای.
+
+### تبدیل‌هایی که انجام می‌شود
+
+| در سیستم قدیمی | در نسخه‌ی وب |
+|---|---|
+| رمز عبور **متن ساده** در `tblUser` | وارد **نمی‌شود**؛ رمز تصادفی + اجبار به تغییر در اولین ورود |
+| دسترسی به‌صورت رشته‌ی `"1-2-7-8"` | ۳۲ دسترسی نام‌دار در ۱۱ ماژول و ۵ نقش |
+| تاریخ شمسی به‌صورت **رشته** (`'1403/05/12'`) | ستون `date` میلادی؛ تبدیل فقط در لایه‌ی نمایش |
+| `ToothName` = `"_3UR,_EUL,_6LL"` | جدول رابطه‌ای با نُماد **FDI** (`13`، `65`، `36`) |
+| مبلغ بدون نوع مشخص | `bigint` ریال — هرگز اعشاری |
+| بدون کلید خارجی، بدون لاگ | کلید خارجی کامل + جدول `activity_logs` |
+| غلط املایی ستون‌ها (`Birhdate`, `Permession`, `Opration`) | نام‌گذاری تمیز `snake_case` |
+| `dbo.getReminderMoney` (UDF) | `Patient::balance` و گزارش بدهکاران |
+
+تصاویر رادیوگرافی تنها وقتی کپی می‌شوند که مسیر `LEGACY_IMAGES_PATH` در
+دسترس باشد؛ در غیر این صورت رکورد و ارتباط دندان‌ها وارد می‌شود و فایل را
+می‌توان بعداً پیوست کرد.
+
+---
+
+## تصاویر رادیوگرافی
+
+نسخه‌ی قدیمی تصاویر را از شیر شبکه‌ی `\\server\AppIMG\` می‌خواند و منبعشان
+**DBSWIN** (نرم‌افزار ویندوزی Dürr Dental) بود. یک وب‌اپ ابری به هیچ‌کدام
+دسترسی ندارد. سه گزینه:
+
+1. **سرور داخل کلینیک** (پیشنهادی برای شروع) — همین Docker روی یک مینی‌سرور
+   در مطب؛ تصاویر روی volume محلی.
+2. **پل محلی** — یک سرویس کوچک ویندوزی که پوشه‌ی DBSWIN را watch کند و
+   فایل جدید را به API آپلود کند.
+3. **آپلود دستی** از خود برنامه.
+
+در هر سه حالت کد یکسان است: از `Storage` با درایور قابل تعویض استفاده
+می‌شود. فایل‌ها **هیچ‌وقت public نیستند** — با نام تصادفی ذخیره و از طریق
+کنترلر با بررسی دسترسی stream می‌شوند.
+
+---
+
+## پیامک
+
+```env
+SMS_DRIVER=log        # log | kavenegar | smsir
+KAVENEGAR_API_KEY=...
+SMS_SENDER=...
+```
+
+پیام‌ها **اول ذخیره و بعد از صف ارسال** می‌شوند، تا قطعی سرویس‌دهنده
+کاربری را که مقابل بیمار ایستاده معطل نکند. متن قالب‌ها از داخل برنامه
+قابل ویرایش است.
+
+---
+
+## پشتیبان‌گیری
+
+```bash
+php artisan clinic:backup            # دستی
+php artisan clinic:backup --keep=30  # با تعداد نگهداری دلخواه
+```
+
+سرویس `scheduler` هر شب ساعت ۲:۳۰ اجرا می‌کند و ۱۴ نسخه‌ی آخر را نگه
+می‌دارد. خروجی در `storage/app/backups`.
+
+---
+
+## توسعه
+
+```bash
+composer install && npm install
+php artisan migrate --seed     # داده‌ی نمونه فقط در local
+npm run dev
+php artisan serve
+```
+
+کاربران نمونه: `admin` / `doctor` / `reception` — همه با رمز `password`.
+
+```bash
+php artisan test          # ۴۱ تست
+./vendor/bin/pint         # فرمت PHP
+```
+
+تست‌ها روی PostgreSQL اجرا می‌شوند (نه sqlite)، چون کوئری‌های جستجو از
+`ILIKE` و ایندکس trigram استفاده می‌کنند. دیتابیس `mosannen_test` باید
+وجود داشته باشد.
