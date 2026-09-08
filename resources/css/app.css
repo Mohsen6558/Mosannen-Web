@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+@source "../../resources/js/**/*.vue";
+@source "../../resources/views/**/*.blade.php";
+
+/* Class-driven dark mode so the user's choice beats the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Typography ──────────────────────────────────────────────────────────── */
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("vazirmatn/Vazirmatn-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("vazirmatn/Vazirmatn-Medium.woff2") format("woff2");
+    font-weight: 500;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("vazirmatn/Vazirmatn-SemiBold.woff2") format("woff2");
+    font-weight: 600;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("vazirmatn/Vazirmatn-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+}
+
+@theme {
+    --font-sans: "Vazirmatn", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+
+    /* Brand — a calm clinical teal. Reads as medical without the cold
+       corporate blue every admin panel already uses. */
+    --color-brand-50:  #eefbf8;
+    --color-brand-100: #d3f5ee;
+    --color-brand-200: #abe9df;
+    --color-brand-300: #74d7ca;
+    --color-brand-400: #3dbcae;
+    --color-brand-500: #21a094;
+    --color-brand-600: #178078;
+    --color-brand-700: #166761;
+    --color-brand-800: #17524f;
+    --color-brand-900: #174543;
+    --color-brand-950: #072929;
+
+    /* Surfaces — warm neutral, easier on the eyes over a long clinic shift
+       than pure grey. */
+    --color-surface-50:  #faf9f7;
+    --color-surface-100: #f4f2ef;
+    --color-surface-200: #e8e5e0;
+    --color-surface-300: #d6d1c9;
+    --color-surface-400: #b0a99e;
+    --color-surface-500: #8b8378;
+    --color-surface-600: #6f6860;
+    --color-surface-700: #59534d;
+    --color-surface-800: #3a3733;
+    --color-surface-900: #24221f;
+    --color-surface-950: #171614;
+
+    /* Ink — text colours, tuned against the warm surfaces. */
+    --color-ink-50:  #f7f7f6;
+    --color-ink-100: #e6e5e3;
+    --color-ink-300: #b5b2ad;
+    --color-ink-500: #78746e;
+    --color-ink-700: #454240;
+    --color-ink-900: #1f1e1c;
+
+    /* Semantic */
+    --color-success-50:  #edfcf3;
+    --color-success-500: #16a34a;
+    --color-success-600: #15803d;
+    --color-danger-50:   #fef2f2;
+    --color-danger-500:  #e11d48;
+    --color-danger-600:  #be123c;
+    --color-warning-50:  #fffbeb;
+    --color-warning-500: #d97706;
+    --color-warning-600: #b45309;
+    --color-info-50:     #eff6ff;
+    --color-info-500:    #2563eb;
+    --color-info-600:    #1d4ed8;
+
+    /* Tooth-chart states — must stay distinguishable in both themes and for
+       the most common colour-vision deficiencies, so they differ in
+       lightness as well as hue. */
+    --color-tooth-healthy:  #d6d1c9;
+    --color-tooth-treated:  #21a094;
+    --color-tooth-planned:  #d97706;
+    --color-tooth-missing:  #8b8378;
+    --color-tooth-selected: #1d4ed8;
+
+    --radius-card: 0.875rem;
+
+    --shadow-card: 0 1px 2px 0 rgb(23 22 20 / 0.04),
+                   0 1px 3px 0 rgb(23 22 20 / 0.06);
+    --shadow-raised: 0 4px 6px -1px rgb(23 22 20 / 0.07),
+                     0 2px 4px -2px rgb(23 22 20 / 0.05);
+    --shadow-overlay: 0 20px 25px -5px rgb(23 22 20 / 0.12),
+                      0 8px 10px -6px rgb(23 22 20 / 0.08);
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+@layer base {
+    * {
+        border-color: var(--color-surface-200);
+    }
+    .dark * {
+        border-color: var(--color-surface-800);
+    }
+
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        font-feature-settings: "ss01";
+    }
+
+    /* Persian digits everywhere numbers are displayed as text. */
+    .nums-fa {
+        font-variant-numeric: normal;
+        -moz-font-feature-settings: "ss02";
+        font-feature-settings: "ss02";
+    }
+
+    /* Tabular figures for money columns so decimal points line up. */
+    .nums-tabular {
+        font-variant-numeric: tabular-nums;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-brand-500);
+        outline-offset: 2px;
+        border-radius: 0.375rem;
+    }
+
+    ::selection {
+        background: var(--color-brand-200);
+        color: var(--color-brand-950);
+    }
+
+    /* Scrollbars that match the surface instead of the OS default. */
+    ::-webkit-scrollbar { width: 11px; height: 11px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+        background: var(--color-surface-300);
+        border-radius: 999px;
+        border: 3px solid transparent;
+        background-clip: content-box;
+    }
+    ::-webkit-scrollbar-thumb:hover { background-clip: content-box; background-color: var(--color-surface-400); }
+    .dark ::-webkit-scrollbar-thumb { background-color: var(--color-surface-700); background-clip: content-box; }
+
+    @media print {
+        .no-print { display: none !important; }
+        body { background: #fff !important; }
+    }
+}
+
+/* ── Component primitives ────────────────────────────────────────────────── */
+@layer components {
+    .card {
+        @apply rounded-[var(--radius-card)] border border-surface-200 bg-white shadow-[var(--shadow-card)]
+               dark:border-surface-800 dark:bg-surface-900;
+    }
+
+    .input-base {
+        @apply w-full rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-900
+               transition-colors placeholder:text-ink-300
+               focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none
+               disabled:cursor-not-allowed disabled:bg-surface-100 disabled:text-ink-500
+               dark:border-surface-700 dark:bg-surface-950 dark:text-ink-50
+               dark:placeholder:text-ink-500 dark:disabled:bg-surface-900;
+    }
+
+    .label-base {
+        @apply mb-1.5 block text-sm font-medium text-ink-700 dark:text-ink-100;
+    }
+
+    /* Slide/fade used by modals and drawers. */
+    .fade-enter-active, .fade-leave-active { transition: opacity .18s ease; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+    .pop-enter-active { transition: all .2s cubic-bezier(.16,1,.3,1); }
+    .pop-leave-active { transition: all .14s ease-in; }
+    .pop-enter-from, .pop-leave-to { opacity: 0; transform: translateY(6px) scale(.98); }
+}
