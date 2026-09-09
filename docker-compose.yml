@@ -27,20 +27,36 @@ services:
     volumes:
       - ./:/var/www/html
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-mosannen.ini:ro
+      - ./docker/nginx/http.conf.template:/etc/nginx/site-opts.d/http.conf.template:ro
       - images:/var/www/html/storage/app/images
       - backups:/var/www/html/storage/app/backups
     environment:
       SSL_MODE: "off"
       PHP_OPCACHE_ENABLE: "1"
+      # Container-internal service names, overriding whatever .env holds.
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-mosannen}
+      DB_USERNAME: ${DB_USERNAME:-mosannen}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       AUTORUN_ENABLED: "true"
       # Migrations are run deliberately, never on container start: an
       # unattended migration against clinic data is not something to
       # discover after the fact.
       AUTORUN_LARAVEL_MIGRATION: "false"
-      AUTORUN_LARAVEL_STORAGE_LINK: "true"
+      # Unused: nothing is served from the public disk.
+      AUTORUN_LARAVEL_STORAGE_LINK: "false"
       AUTORUN_LARAVEL_CONFIG_CACHE: "true"
       AUTORUN_LARAVEL_ROUTE_CACHE: "true"
       AUTORUN_LARAVEL_VIEW_CACHE: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,11 +70,24 @@ services:
     image: ${APP_IMAGE:-serversideup/php:8.4-fpm-nginx}
     container_name: mosannen-queue
     restart: unless-stopped
+    # No web server in this container; the image healthcheck would always fail.
+    healthcheck:
+      disable: true
     command: ["php", "/var/www/html/artisan", "queue:work", "--tries=3", "--max-time=3600", "--sleep=3"]
     volumes:
       - ./:/var/www/html
       - images:/var/www/html/storage/app/images
     environment:
+      SSL_MODE: "off"
+      PHP_OPCACHE_ENABLE: "1"
+      # Container-internal service names, overriding whatever .env holds.
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-mosannen}
+      DB_USERNAME: ${DB_USERNAME:-mosannen}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       AUTORUN_ENABLED: "false"
     depends_on:
       postgres:
@@ -73,11 +102,24 @@ services:
     image: ${APP_IMAGE:-serversideup/php:8.4-fpm-nginx}
     container_name: mosannen-scheduler
     restart: unless-stopped
+    # No web server in this container; the image healthcheck would always fail.
+    healthcheck:
+      disable: true
     command: ["php", "/var/www/html/artisan", "schedule:work"]
     volumes:
       - ./:/var/www/html
       - backups:/var/www/html/storage/app/backups
     environment:
+      SSL_MODE: "off"
+      PHP_OPCACHE_ENABLE: "1"
+      # Container-internal service names, overriding whatever .env holds.
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-mosannen}
+      DB_USERNAME: ${DB_USERNAME:-mosannen}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       AUTORUN_ENABLED: "false"
     depends_on:
       postgres:
@@ -90,7 +132,7 @@ services:
     container_name: mosannen-postgres
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     environment:
       POSTGRES_DB: ${DB_DATABASE:-mosannen}
       POSTGRES_USER: ${DB_USERNAME:-mosannen}
@@ -125,8 +167,8 @@ services:
     profiles: ["s3"]
     command: ["server", "/data", "--console-address", ":9001"]
     ports:
-      - "${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     environment:
       MINIO_ROOT_USER: ${IMAGES_S3_KEY:-mosannen}
       MINIO_ROOT_PASSWORD: ${IMAGES_S3_SECRET:-secret12345}

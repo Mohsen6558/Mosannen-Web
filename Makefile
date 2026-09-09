@@ -33,12 +33,14 @@ shell: ## Open a shell in the app container
 
 install: ## First-time setup
 	cp -n .env.example .env || true
+	# The app image runs as www-data (uid 33).
+	sudo chown -R 33:33 storage bootstrap/cache
 	$(DC) up -d
-	$(EXEC) composer install
 	$(EXEC) php artisan key:generate
-	$(EXEC) php artisan migrate --seed
-	$(DC) run --rm vite npm install
-	$(DC) run --rm vite npm run build
+	$(EXEC) php artisan migrate --force
+	$(EXEC) php artisan db:seed --force
+	$(DC) --profile dev run --rm vite npm install
+	$(DC) --profile dev run --rm vite npm run build
 	@echo "→ http://localhost:$${APP_PORT:-8080}"
 
 migrate: ## Run pending migrations
@@ -66,6 +68,6 @@ lint: ## Format PHP with Pint
 	$(EXEC) ./vendor/bin/pint
 
 assets: ## Rebuild frontend assets
-	$(DC) run --rm vite npm run build
+	$(DC) --profile dev run --rm vite npm run build
 
 build: assets ## Alias for assets

@@ -40,6 +40,13 @@ return [
         ],
     ],
 
+    /*
+     | Mount point of the legacy \\server\\AppIMG\\ share while running
+     | `legacy:import`. Read through config, never env(), because the
+     | container caches config on boot and env() then returns null.
+     */
+    'legacy_images_path' => env('LEGACY_IMAGES_PATH', ''),
+
     'images' => [
         // Radiography files. 'local' for an on-prem server, 's3' for MinIO/cloud.
         'disk' => env('IMAGES_DISK', 'images'),

@@ -622,7 +622,7 @@ class LegacyImporter
      */
     private function importRadiographs(): void
     {
-        $sourceDir = rtrim((string) env('LEGACY_IMAGES_PATH', ''), '/\\');
+        $sourceDir = rtrim((string) config('clinic.legacy_images_path'), '/\\');
         $haveSource = $sourceDir !== '' && is_dir($sourceDir);
 
         if (! $haveSource) {

@@ -9,14 +9,27 @@ Laravel، Inertia، Vue 3 و PostgreSQL.
 
 ```bash
 cp .env.example .env
+
+# ایمیج اپ با کاربر www-data (uid 33) اجرا می‌شود؛ دو پوشه‌ای که در آن‌ها
+# می‌نویسد باید مال او باشند:
+sudo chown -R 33:33 storage bootstrap/cache
+
 docker compose up -d
 docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate --seed
-docker compose run --rm vite npm install && docker compose run --rm vite npm run build
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan db:seed --force
+
+# ساخت فایل‌های فرانت (یک بار)
+docker compose --profile dev run --rm vite npm install
+docker compose --profile dev run --rm vite npm run build
 ```
 
 سپس <http://localhost:8080> — نام کاربری `admin` و رمز `password`
 (در اولین ورود باید تغییر کند).
+
+> اگر روی سرور از قبل PostgreSQL دارید، پورت ۵۴۳۲ اشغال است؛
+> `POSTGRES_PORT` را در `.env` عوض کنید. این پورت فقط روی `127.0.0.1`
+> باز می‌شود و از شبکه در دسترس نیست.
 
 یا با `make`:
 
@@ -57,6 +70,14 @@ make import-dry  # تمرین مهاجرت داده بدون نوشتن
 docker compose --profile s3 up -d      # با MinIO
 docker compose --profile dev up -d     # با hot reload
 ```
+
+فقط پورت وب (`APP_PORT`) روی همه‌ی رابط‌ها باز است. PostgreSQL و MinIO
+به `127.0.0.1` محدود شده‌اند تا از شبکه‌ی کلینیک قابل دسترسی نباشند.
+
+nginx داخل کانتینر فقط روی IPv4 گوش می‌دهد
+(`docker/nginx/http.conf.template`). داکر پورت را روی IPv4 منتشر می‌کند،
+پس چیزی از دست نمی‌رود — و روی میزبانی که IPv6 در کرنلش کامپایل نشده،
+کانتینر دیگر در حلقه‌ی ری‌استارت نمی‌افتد.
 
 مهاجرت‌ها **به‌صورت خودکار هنگام بالا آمدن کانتینر اجرا نمی‌شوند**؛ اجرای
 ناخواسته‌ی migration روی داده‌ی بیماران چیزی نیست که بعداً بفهمید.
