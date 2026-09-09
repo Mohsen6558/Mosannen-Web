@@ -205,3 +205,13 @@ php artisan test          # ۴۱ تست
 تست‌ها روی PostgreSQL اجرا می‌شوند (نه sqlite)، چون کوئری‌های جستجو از
 `ILIKE` و ایندکس trigram استفاده می‌کنند. دیتابیس `mosannen_test` باید
 وجود داشته باشد.
+
+> **مهم:** وقتی استک داکر بالاست، کانتینر `config:cache` را در
+> `bootstrap/cache/` می‌نویسد و چون این پوشه bind-mount مشترک است،
+> `DB_HOST=postgres` داخلش قفل می‌شود. اگر بعدش روی خودِ میزبان
+> `php artisan` بزنید، همان کانفیگ کانتینر خوانده می‌شود و به خطای
+> «could not translate host name postgres» می‌خورید.
+>
+> راه درست: وقتی استک بالاست، دستورها را با
+> `docker compose exec app php artisan ...` بزنید (همان کاری که Makefile
+> می‌کند). اگر گیر کردید: `rm -f bootstrap/cache/config.php`.

@@ -41,6 +41,15 @@ for setup; this file records the conventions and the traps.
   `PageHeader` component inside the page instead.
 - **Tests run against PostgreSQL, not sqlite.** Patient search uses `ILIKE`
   and a trigram index.
+- **The container's config cache leaks onto the host.** `bootstrap/cache` is
+  inside the bind mount and the app container caches config on boot, baking
+  in `DB_HOST=postgres`. Host-side `php artisan` then fails to resolve it.
+  Run artisan through `docker compose exec app` while the stack is up, or
+  delete `bootstrap/cache/config.php`.
+- **The app image runs as www-data (33) and ignores PUID/PGID.** Do not set
+  `user:` on the service either — the entrypoint templates
+  `/etc/nginx/nginx.conf` as root before dropping privileges. Chown
+  `storage` and `bootstrap/cache` to 33 instead.
 
 ## Legacy schema map
 
