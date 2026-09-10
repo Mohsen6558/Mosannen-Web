@@ -47,12 +47,9 @@ const NAV = [
         ],
     },
     {
-        heading: 'اطلاعات پایه',
+        heading: 'تنظیمات',
         items: [
-            { name: 'خدمات و تعرفه', route: 'catalog.treatments.index', icon: 'list', permission: 'catalog.manage' },
-            { name: 'داروها', route: 'catalog.drugs.index', icon: 'pill', permission: 'catalog.manage' },
-            { name: 'بیمه‌ها', route: 'catalog.insurances.index', icon: 'shield', permission: 'catalog.manage' },
-            { name: 'نحوه پرداخت', route: 'catalog.payment-types.index', icon: 'card', permission: 'catalog.manage' },
+            { name: 'اطلاعات پایه', route: 'catalog.treatments.index', icon: 'list', permission: 'catalog.manage', match: 'catalog' },
             { name: 'کاربران', route: 'users.index', icon: 'key', permission: 'users.manage' },
         ],
     },
@@ -82,10 +79,12 @@ const visibleNav = computed(() =>
     })).filter((g) => g.items.length),
 );
 
-function isActive(name) {
-    // Highlight the parent while on any nested route (patients.index ↔ patients.show)
-    const base = name.replace(/\.index$/, '');
-    return route().current(name) || route().current(`${base}.*`);
+function isActive(item) {
+    // A row stays lit across its nested routes (patients.index ↔ patients.show)
+    // and, where `match` is given, across a whole route prefix.
+    if (item.match) return route().current(`${item.match}.*`);
+    const base = item.route.replace(/\.index$/, '');
+    return route().current(item.route) || route().current(`${base}.*`);
 }
 
 onKeyStroke('k', (e) => {
@@ -111,19 +110,19 @@ function logout() {
 
         <!-- Sidebar -->
         <aside
-            class="fixed inset-y-0 start-0 z-50 flex flex-col border-e border-surface-200 bg-white transition-[width,transform] duration-200 dark:border-surface-800 dark:bg-surface-900"
+            class="fixed inset-y-0 start-0 z-50 flex flex-col bg-white transition-[width,transform] duration-200 dark:border-e dark:border-surface-800 dark:bg-surface-900"
             :class="[
                 collapsed ? 'w-[68px]' : 'w-64',
                 mobileOpen ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full lg:translate-x-0 lg:rtl:translate-x-0',
             ]"
         >
-            <div class="flex h-16 shrink-0 items-center gap-2.5 border-b border-surface-200 px-4 dark:border-surface-800">
+            <div class="flex h-16 shrink-0 items-center gap-2.5 px-4">
                 <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
                     <svg class="size-5" viewBox="0 0 24 24" fill="currentColor"><path :d="ICONS.tooth" /></svg>
                 </div>
                 <div v-if="!collapsed" class="min-w-0">
-                    <p class="truncate text-sm font-bold text-ink-900 dark:text-ink-50">{{ clinic.name || 'مسنن' }}</p>
-                    <p class="truncate text-[11px] text-ink-500">سامانه مدیریت کلینیک</p>
+                    <p class="truncate text-sm font-bold text-ink-900 dark:text-ink-50">{{ clinic.name }}</p>
+                    <p class="truncate text-[11px] text-ink-500">{{ clinic.tagline }}</p>
                 </div>
             </div>
 
@@ -140,7 +139,7 @@ function logout() {
                             <Link
                                 :href="route(item.route)"
                                 class="group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors"
-                                :class="isActive(item.route)
+                                :class="isActive(item)
                                     ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-200'
                                     : 'text-ink-700 hover:bg-surface-100 dark:text-ink-100 dark:hover:bg-surface-800'"
                                 :title="collapsed ? item.name : null"
@@ -148,7 +147,7 @@ function logout() {
                             >
                                 <svg
                                     class="size-5 shrink-0"
-                                    :class="isActive(item.route) ? 'text-brand-600 dark:text-brand-300' : 'text-ink-500'"
+                                    :class="isActive(item) ? 'text-brand-600 dark:text-brand-300' : 'text-ink-500'"
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
                                 >
                                     <path stroke-linecap="round" stroke-linejoin="round" :d="ICONS[item.icon]" />
@@ -160,7 +159,7 @@ function logout() {
                 </div>
             </nav>
 
-            <div class="shrink-0 border-t border-surface-200 p-3 dark:border-surface-800">
+            <div class="shrink-0 p-3">
                 <button
                     type="button"
                     class="hidden w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-ink-500 transition-colors hover:bg-surface-100 lg:flex dark:hover:bg-surface-800"
@@ -177,7 +176,7 @@ function logout() {
         <!-- Main -->
         <div class="transition-[padding] duration-200" :class="collapsed ? 'lg:ps-[68px]' : 'lg:ps-64'">
             <header
-                class="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-surface-200 bg-surface-50/80 px-4 backdrop-blur-md sm:px-6 dark:border-surface-800 dark:bg-surface-950/80"
+                class="sticky top-0 z-30 flex h-14 items-center gap-2 bg-surface-50/85 px-4 backdrop-blur-md sm:px-6 dark:bg-surface-950/85"
             >
                 <button
                     type="button"
@@ -188,13 +187,9 @@ function logout() {
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
 
-                <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-ink-700 dark:text-ink-100">
-                        {{ clinic.name || 'سامانه مدیریت کلینیک' }}
-                    </p>
-                </div>
+                <div class="flex-1" />
 
-                <p class="hidden text-xs text-ink-500 md:block">{{ today }}</p>
+                <p class="hidden text-xs text-ink-500 sm:block">{{ today }}</p>
 
                 <button
                     type="button"
@@ -241,7 +236,7 @@ function logout() {
                 </div>
             </header>
 
-            <main class="p-4 sm:p-6">
+            <main class="mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8">
                 <slot />
             </main>
         </div>

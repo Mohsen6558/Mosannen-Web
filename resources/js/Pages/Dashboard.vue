@@ -14,7 +14,6 @@ const props = defineProps({
     incomeSeries: { type: Array, default: () => [] },
     topServices: { type: Array, default: () => [] },
     todayAppointments: { type: Array, default: () => [] },
-    recentPatients: { type: Array, default: () => [] },
     lowStock: { type: Array, default: () => [] },
 });
 
@@ -143,48 +142,30 @@ const STATUS_LABEL = {
             </UiCard>
         </div>
 
-        <div class="grid gap-5 lg:grid-cols-3">
+        <div class="grid gap-5 lg:grid-cols-2">
             <!-- Top services -->
             <UiCard title="پرتکرارترین خدمات این ماه">
-                <ul v-if="topServices.length" class="space-y-2.5">
-                    <li v-for="(s, i) in topServices" :key="i">
-                        <div class="mb-1 flex items-baseline justify-between gap-2 text-sm">
-                            <span class="truncate">{{ s.name }}</span>
-                            <span class="nums-tabular shrink-0 text-xs text-ink-500">{{ formatNumber(s.count) }}</span>
-                        </div>
-                        <div class="h-1.5 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-800">
-                            <div class="h-full rounded-full bg-brand-500"
-                                 :style="{ width: `${(s.count / topServices[0].count) * 100}%` }" />
-                        </div>
+                <ol v-if="topServices.length" class="space-y-1">
+                    <li v-for="(s, i) in topServices" :key="i" class="flex items-center gap-3 py-1.5">
+                        <span class="nums-tabular w-4 shrink-0 text-xs text-ink-300">{{ toPersianDigits(i + 1) }}</span>
+                        <span class="min-w-0 flex-1 truncate text-sm">{{ s.name }}</span>
+                        <span class="h-1 w-16 shrink-0 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-800">
+                            <span class="block h-full rounded-full bg-brand-500"
+                                  :style="{ width: `${(s.count / topServices[0].count) * 100}%` }" />
+                        </span>
+                        <span class="nums-tabular w-6 shrink-0 text-end text-xs font-medium">{{ toPersianDigits(s.count) }}</span>
                     </li>
-                </ul>
+                </ol>
                 <UiEmpty v-else title="درمانی در این ماه ثبت نشده" />
             </UiCard>
 
-            <!-- Recent patients -->
-            <UiCard title="آخرین پرونده‌ها">
-                <template #actions>
-                    <Link :href="route('patients.index')" class="text-xs font-medium text-brand-600 hover:underline">همه</Link>
-                </template>
-
-                <ul v-if="recentPatients.length" class="divide-y divide-surface-100 dark:divide-surface-800">
-                    <li v-for="p in recentPatients" :key="p.id" class="py-2">
-                        <Link :href="route('patients.show', p.id)" class="flex items-center justify-between gap-2 hover:text-brand-600">
-                            <span class="truncate text-sm">{{ p.name }}</span>
-                            <span class="nums-tabular shrink-0 text-[11px] text-ink-500">{{ toPersianDigits(p.code) }}</span>
-                        </Link>
-                    </li>
-                </ul>
-                <UiEmpty v-else title="پرونده‌ای ثبت نشده" />
-            </UiCard>
-
-            <!-- Low stock -->
-            <UiCard title="کالاهای رو به اتمام">
+            <!-- Low stock — only when there is something to act on. -->
+            <UiCard v-if="lowStock.length" title="کالاهای رو به اتمام">
                 <template #actions>
                     <Link :href="route('stock.index')" class="text-xs font-medium text-brand-600 hover:underline">انبار</Link>
                 </template>
 
-                <ul v-if="lowStock.length" class="divide-y divide-surface-100 dark:divide-surface-800">
+                <ul class="divide-y divide-surface-100 dark:divide-surface-800">
                     <li v-for="i in lowStock" :key="i.id" class="flex items-center justify-between gap-2 py-2">
                         <span class="truncate text-sm">{{ i.name }}</span>
                         <UiBadge tone="warning" class="nums-tabular">
@@ -192,7 +173,6 @@ const STATUS_LABEL = {
                         </UiBadge>
                     </li>
                 </ul>
-                <UiEmpty v-else title="موجودی همه کالاها کافی است" />
             </UiCard>
         </div>
     </div>

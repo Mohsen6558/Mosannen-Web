@@ -59,17 +59,6 @@ class DashboardController extends Controller
                     'notes' => $a->notes,
                 ]),
 
-            'recentPatients' => Patient::query()
-                ->orderByDesc('created_at')
-                ->limit(8)
-                ->get(['id', 'code', 'first_name', 'last_name', 'registered_on'])
-                ->map(fn (Patient $p) => [
-                    'id' => $p->id,
-                    'code' => $p->code,
-                    'name' => $p->full_name,
-                    'registered_on' => $p->registered_on?->toDateString(),
-                ]),
-
             // Consumables at or below their reorder level.
             'lowStock' => StockItem::active()
                 ->get(['id', 'name', 'unit', 'reorder_level'])

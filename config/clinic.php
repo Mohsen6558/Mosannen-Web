@@ -4,7 +4,8 @@ return [
     /*
      | Clinic identity. Printed on receipts, prescriptions and SMS signatures.
      */
-    'name' => env('CLINIC_NAME', 'کلینیک دندانپزشکی'),
+    'name' => env('CLINIC_NAME', 'دکتر مسنن مبرز'),
+    'tagline' => env('CLINIC_TAGLINE', 'کلینیک دندانپزشکی'),
     'phone' => env('CLINIC_PHONE', ''),
     'address' => env('CLINIC_ADDRESS', ''),
 

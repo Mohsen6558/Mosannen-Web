@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import CatalogTable from '@/Components/CatalogTable.vue';
+import CatalogTabs from '@/Components/CatalogTabs.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import UiField from '@/Components/UiField.vue';
 import UiMoneyInput from '@/Components/UiMoneyInput.vue';
@@ -28,7 +29,8 @@ const visibleServices = computed(() =>
 
 <template>
     <Head title="خدمات و تعرفه" />
-    <PageHeader title="خدمات و تعرفه" subtitle="گروه‌های درمانی و تعرفه هر خدمت" />
+    <PageHeader title="اطلاعات پایه" subtitle="داده‌هایی که یک بار تنظیم می‌شوند و همه‌جای سامانه از آن‌ها استفاده می‌کند" />
+    <CatalogTabs />
 
     <div class="grid gap-5 lg:grid-cols-5">
         <div class="lg:col-span-2">

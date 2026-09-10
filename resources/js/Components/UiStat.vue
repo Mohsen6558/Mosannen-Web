@@ -1,12 +1,16 @@
 <script setup>
 import { computed } from 'vue';
 
+/**
+ * A single figure. Deliberately plain: the number is the only thing with
+ * weight, so a row of these reads as data rather than as decoration.
+ */
 const props = defineProps({
     label: { type: String, required: true },
     value: { type: [String, Number], required: true },
     hint: { type: String, default: null },
     tone: { type: String, default: 'neutral' },
-    trend: { type: Number, default: null }, // percent change
+    trend: { type: Number, default: null },
 });
 
 const TONES = {
@@ -21,32 +25,22 @@ const valueCls = computed(() => TONES[props.tone] ?? TONES.neutral);
 </script>
 
 <template>
-    <div class="card p-4">
-        <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-                <p class="truncate text-xs font-medium text-ink-500">{{ label }}</p>
-                <p class="nums-tabular mt-1.5 truncate text-xl font-bold" :class="valueCls">{{ value }}</p>
-                <p v-if="hint" class="mt-1 truncate text-[11px] text-ink-500">{{ hint }}</p>
-            </div>
+    <div class="card px-5 py-4">
+        <p class="truncate text-xs text-ink-500">{{ label }}</p>
 
-            <div
-                v-if="$slots.icon"
-                class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-100 text-ink-500 dark:bg-surface-800"
-            >
-                <slot name="icon" />
-            </div>
-        </div>
-
-        <p
-            v-if="trend !== null"
-            class="mt-2 inline-flex items-center gap-1 text-[11px] font-medium"
-            :class="trend >= 0 ? 'text-success-600' : 'text-danger-500'"
-        >
-            <svg class="size-3" viewBox="0 0 12 12" fill="currentColor">
-                <path v-if="trend >= 0" d="M6 2l4 5H2z" />
-                <path v-else d="M6 10L2 5h8z" />
-            </svg>
-            {{ Math.abs(trend) }}٪
+        <p class="nums-tabular mt-1.5 truncate text-2xl leading-tight font-bold" :class="valueCls">
+            {{ value }}
         </p>
+
+        <div class="mt-1 flex items-center gap-2">
+            <p v-if="hint" class="truncate text-[11px] text-ink-300">{{ hint }}</p>
+            <p
+                v-if="trend !== null"
+                class="nums-tabular shrink-0 text-[11px] font-medium"
+                :class="trend >= 0 ? 'text-success-600' : 'text-danger-500'"
+            >
+                {{ trend >= 0 ? '+' : '−' }}{{ Math.abs(trend) }}٪
+            </p>
+        </div>
     </div>
 </template>

@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import CatalogTable from '@/Components/CatalogTable.vue';
+import CatalogTabs from '@/Components/CatalogTabs.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import UiField from '@/Components/UiField.vue';
 import UiInput from '@/Components/UiInput.vue';
@@ -25,7 +26,8 @@ const visibleVariants = computed(() =>
 
 <template>
     <Head title="داروها" />
-    <PageHeader title="داروها" subtitle="داروها و اشکال دارویی قابل تجویز" />
+    <PageHeader title="اطلاعات پایه" subtitle="داده‌هایی که یک بار تنظیم می‌شوند و همه‌جای سامانه از آن‌ها استفاده می‌کند" />
+    <CatalogTabs />
 
     <div class="grid gap-5 lg:grid-cols-5">
         <div class="lg:col-span-2">

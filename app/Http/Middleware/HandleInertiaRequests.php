@@ -48,6 +48,7 @@ class HandleInertiaRequests extends Middleware
 
             'clinic' => [
                 'name' => config('clinic.name'),
+                'tagline' => config('clinic.tagline'),
                 'phone' => config('clinic.phone'),
                 'address' => config('clinic.address'),
             ],

@@ -139,7 +139,10 @@ function rowWidth(count) {
             </button>
         </div>
 
-        <div class="overflow-x-auto rounded-lg border border-surface-200 bg-surface-50 p-4 dark:border-surface-800 dark:bg-surface-950">
+        <div
+            class="overflow-x-auto"
+            :class="readonly ? 'py-1' : 'rounded-lg bg-surface-100/60 p-4 dark:bg-surface-950'"
+        >
             <div class="mx-auto w-fit space-y-2">
                 <div v-for="row in rows" :key="row.key" class="flex items-center gap-3">
                     <button

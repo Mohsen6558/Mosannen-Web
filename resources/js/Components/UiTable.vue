@@ -34,12 +34,12 @@ function toggleSort(col) {
 
         <table class="w-full border-collapse text-sm">
             <thead>
-                <tr class="border-b border-surface-200 dark:border-surface-800">
+                <tr class="border-b border-surface-100 dark:border-surface-800">
                     <th
                         v-for="col in columns"
                         :key="col.key"
                         scope="col"
-                        class="px-4 py-3 text-xs font-semibold whitespace-nowrap text-ink-500"
+                        class="px-4 pb-2.5 text-xs font-medium whitespace-nowrap text-ink-300"
                         :class="[
                             col.align === 'end' ? 'text-end' : col.align === 'center' ? 'text-center' : 'text-start',
                             col.sortable ? 'cursor-pointer select-none hover:text-ink-900 dark:hover:text-ink-50' : '',
@@ -67,14 +67,14 @@ function toggleSort(col) {
                 <tr
                     v-for="row in rows"
                     :key="row[rowKey]"
-                    class="border-b border-surface-100 transition-colors last:border-0 dark:border-surface-800/60"
+                    class="border-b border-surface-100/80 transition-colors last:border-0 dark:border-surface-800/50"
                     :class="clickable ? 'cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800/40' : ''"
                     @click="clickable && emit('rowClick', row)"
                 >
                     <td
                         v-for="col in columns"
                         :key="col.key"
-                        class="px-4 py-3 align-middle"
+                        class="px-4 py-3.5 align-middle"
                         :class="[
                             col.align === 'end' ? 'text-end' : col.align === 'center' ? 'text-center' : 'text-start',
                             col.class,

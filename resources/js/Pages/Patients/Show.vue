@@ -105,22 +105,25 @@ function destroy() {
 
         <!-- Tabs -->
         <div>
-            <div class="mb-4 flex gap-1 overflow-x-auto border-b border-surface-200 dark:border-surface-800">
+            <div class="mb-4 flex gap-1 overflow-x-auto">
                 <button
                     v-for="t in TABS"
                     :key="t.key"
                     type="button"
-                    class="relative shrink-0 px-4 py-2.5 text-sm font-medium transition-colors"
+                    class="shrink-0 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors"
                     :class="tab === t.key
-                        ? 'text-brand-700 dark:text-brand-300'
-                        : 'text-ink-500 hover:text-ink-900 dark:hover:text-ink-50'"
+                        ? 'bg-brand-600 text-white'
+                        : 'text-ink-500 hover:bg-surface-200/70 hover:text-ink-900 dark:hover:bg-surface-800 dark:hover:text-ink-50'"
                     @click="tab = t.key"
                 >
                     {{ t.label }}
-                    <span v-if="t.count !== null" class="nums-tabular ms-1 text-xs text-ink-300">
+                    <span
+                        v-if="t.count"
+                        class="nums-tabular ms-1 text-xs"
+                        :class="tab === t.key ? 'text-white/70' : 'text-ink-300'"
+                    >
                         {{ toPersianDigits(t.count) }}
                     </span>
-                    <span v-if="tab === t.key" class="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-brand-600" />
                 </button>
             </div>
 
@@ -128,17 +131,17 @@ function destroy() {
             <UiCard v-if="tab === 'treatments'" :padded="false">
                 <div v-if="treatments.length" class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="border-b border-surface-200 dark:border-surface-800">
-                            <tr class="text-xs text-ink-500">
-                                <th class="px-4 py-3 text-start font-semibold">تاریخ</th>
-                                <th class="px-4 py-3 text-start font-semibold">درمان</th>
-                                <th class="px-4 py-3 text-start font-semibold">دندان</th>
-                                <th class="px-4 py-3 text-start font-semibold">پزشک</th>
-                                <th class="px-4 py-3 text-end font-semibold">مبلغ</th>
+                        <thead class="border-b border-surface-100 dark:border-surface-800">
+                            <tr class="text-xs text-ink-300">
+                                <th class="px-4 pb-2.5 text-start font-medium">تاریخ</th>
+                                <th class="px-4 pb-2.5 text-start font-medium">درمان</th>
+                                <th class="px-4 pb-2.5 text-start font-medium">دندان</th>
+                                <th class="px-4 pb-2.5 text-start font-medium">پزشک</th>
+                                <th class="px-4 pb-2.5 text-end font-medium">مبلغ</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="t in treatments" :key="t.id" class="border-b border-surface-100 last:border-0 dark:border-surface-800/60">
+                            <tr v-for="t in treatments" :key="t.id" class="border-b border-surface-100/80 last:border-0 dark:border-surface-800/50">
                                 <td class="nums-tabular px-4 py-3 whitespace-nowrap text-ink-500">{{ jalali(t.performed_on) }}</td>
                                 <td class="px-4 py-3">
                                     <p class="font-medium">{{ t.service }}</p>
@@ -168,17 +171,17 @@ function destroy() {
             <UiCard v-else-if="tab === 'payments'" :padded="false">
                 <div v-if="payments.length" class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="border-b border-surface-200 dark:border-surface-800">
-                            <tr class="text-xs text-ink-500">
-                                <th class="px-4 py-3 text-start font-semibold">تاریخ</th>
-                                <th class="px-4 py-3 text-start font-semibold">نحوه پرداخت</th>
-                                <th class="px-4 py-3 text-start font-semibold">ثبت‌کننده</th>
-                                <th class="px-4 py-3 text-end font-semibold">تخفیف</th>
-                                <th class="px-4 py-3 text-end font-semibold">مبلغ</th>
+                        <thead class="border-b border-surface-100 dark:border-surface-800">
+                            <tr class="text-xs text-ink-300">
+                                <th class="px-4 pb-2.5 text-start font-medium">تاریخ</th>
+                                <th class="px-4 pb-2.5 text-start font-medium">نحوه پرداخت</th>
+                                <th class="px-4 pb-2.5 text-start font-medium">ثبت‌کننده</th>
+                                <th class="px-4 pb-2.5 text-end font-medium">تخفیف</th>
+                                <th class="px-4 pb-2.5 text-end font-medium">مبلغ</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="p in payments" :key="p.id" class="border-b border-surface-100 last:border-0 dark:border-surface-800/60">
+                            <tr v-for="p in payments" :key="p.id" class="border-b border-surface-100/80 last:border-0 dark:border-surface-800/50">
                                 <td class="nums-tabular px-4 py-3 whitespace-nowrap text-ink-500">
                                     {{ jalali(p.paid_on) }}
                                     <span v-if="p.paid_at" class="text-[11px]">{{ toPersianDigits(String(p.paid_at).slice(0, 5)) }}</span>
