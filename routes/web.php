@@ -94,6 +94,7 @@ Route::middleware('auth')->group(function () {
     // ── Reports ──────────────────────────────────────────────────────────
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/debtors.csv', [ReportController::class, 'exportDebtors'])->name('reports.debtors.export');
+    Route::get('/reports/recall.csv', [ReportController::class, 'exportRecall'])->name('reports.recall.export');
 
     // ── Base data ────────────────────────────────────────────────────────
     Route::prefix('catalog')->name('catalog.')->controller(CatalogController::class)->group(function () {

@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { PERMANENT, PRIMARY, isPrimary, toothName } from '@/Support/teeth';
 import { toPersianDigits } from '@/Support/format';
+import { rampStep } from '@/Support/chartTheme';
 
 /**
  * Interactive dental chart.
@@ -23,6 +24,8 @@ const props = defineProps({
     planned: { type: Array, default: () => [] },
     missing: { type: Array, default: () => [] },
     readonly: { type: Boolean, default: false },
+    // { '13': 7, '36': 2 } — turns the chart into a sequential heat map.
+    heat: { type: Object, default: null },
     showPrimary: { type: Boolean, default: true },
     compact: { type: Boolean, default: false },
 });
@@ -63,6 +66,17 @@ function state(code) {
     if (plannedSet.value.has(code)) return 'planned';
     if (treatedSet.value.has(code)) return 'treated';
     return 'healthy';
+}
+
+const heatMax = computed(() =>
+    props.heat ? Math.max(...Object.values(props.heat), 1) : 1,
+);
+
+/** Sequential fill for a tooth, or null when the chart is not a heat map. */
+function heatFill(code) {
+    if (!props.heat) return null;
+
+    return rampStep((props.heat[code] ?? 0) / heatMax.value);
 }
 
 const FILL = {
@@ -113,7 +127,21 @@ function rowWidth(count) {
 
 <template>
     <div class="select-none">
-        <div v-if="!readonly" class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div v-if="heat" class="mb-3 flex items-center justify-end gap-2 text-[11px] text-ink-500">
+            <span>کمتر</span>
+            <span class="flex gap-0.5">
+                <span
+                    v-for="(step, i) in ['#d3f5ee', '#abe9df', '#74d7ca', '#3dbcae', '#21a094', '#178078', '#166761']"
+                    :key="i"
+                    class="size-3 rounded-sm"
+                    :style="{ background: step }"
+                />
+            </span>
+            <span>بیشتر</span>
+            <span class="nums-tabular ms-2">حداکثر {{ toPersianDigits(heatMax) }} درمان</span>
+        </div>
+
+        <div v-else-if="!readonly" class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-ink-500">
                 <span class="inline-flex items-center gap-1.5">
                     <span class="size-2.5 rounded-sm bg-[var(--color-tooth-selected)]" /> انتخاب‌شده
@@ -173,10 +201,11 @@ function rowWidth(count) {
                                 :rx="isPrimary(code) ? size * 0.3 : size * 0.22"
                                 class="cursor-pointer stroke-surface-300 transition-all duration-100 dark:stroke-surface-600"
                                 :class="[
-                                    FILL[state(code)],
+                                    heat ? (heatFill(code) ? '' : 'fill-white dark:fill-surface-800') : FILL[state(code)],
                                     readonly ? 'cursor-default' : 'hover:stroke-brand-500 hover:stroke-2',
                                     hovered === code ? 'stroke-brand-500 stroke-2' : '',
                                 ]"
+                                :style="heat && heatFill(code) ? { fill: heatFill(code) } : null"
                                 stroke-width="1.2"
                                 role="checkbox"
                                 :aria-checked="selected.has(code)"
@@ -194,7 +223,9 @@ function rowWidth(count) {
                                 :y="8 + size / 2 + 4"
                                 text-anchor="middle"
                                 class="pointer-events-none text-[11px] font-medium"
-                                :class="TEXT[state(code)]"
+                                :class="heat
+                                    ? ((heat[code] ?? 0) / heatMax > 0.55 ? 'fill-white' : 'fill-ink-700 dark:fill-ink-100')
+                                    : TEXT[state(code)]"
                             >
                                 {{ toPersianDigits(code) }}
                             </text>
@@ -211,6 +242,7 @@ function rowWidth(count) {
         >
             دندان <span class="font-medium text-ink-900 dark:text-ink-50">{{ toPersianDigits(hovered) }}</span>
             — {{ toothName(hovered) }}
+            <span v-if="heat" class="nums-tabular"> — {{ toPersianDigits(heat[hovered] ?? 0) }} درمان</span>
         </p>
     </div>
 </template>

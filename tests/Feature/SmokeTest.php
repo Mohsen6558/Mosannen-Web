@@ -62,6 +62,15 @@ it('renders every main screen', function (string $uri) {
     '/profile',
 ]);
 
+/** Each report tab is computed server-side, so each needs its own visit. */
+it('renders every report tab', function (string $tab) {
+    $this->actingAs($this->admin)->get("/reports?report={$tab}")->assertOk();
+})->with(['financial', 'receivables', 'clinical', 'practitioners', 'patients', 'appointments']);
+
+it('exports the debtor and recall lists', function (string $uri) {
+    $this->actingAs($this->admin)->get($uri)->assertOk();
+})->with(['/reports/debtors.csv', '/reports/recall.csv']);
+
 it('serves the JSON lookups', function (string $uri) {
     $this->actingAs($this->admin)->get($uri)->assertOk()->assertJson([]);
 })->with([

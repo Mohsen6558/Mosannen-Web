@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Patient;
 use App\Models\Payment;
-use App\Models\Radiograph;
 use App\Models\Treatment;
+use App\Services\ReportService;
+use App\Support\JalaliDate;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Inertia\Inertia;
@@ -13,11 +14,20 @@ use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Replaces frmReport, which had five separate tabs each building SQL by
- * string concatenation. The same five reports, driven by one date range.
+ * Replaces frmReport, which had five tabs each building SQL by string
+ * concatenation. Six reports now, driven by one date range; the heavy
+ * aggregations live in ReportService.
+ *
+ * Only the active tab's data is computed — the receivables aging walks every
+ * treatment, and paying for it while someone reads the patient mix would be
+ * wasteful.
  */
 class ReportController extends Controller implements HasMiddleware
 {
+    private const TABS = ['financial', 'receivables', 'clinical', 'practitioners', 'patients', 'appointments'];
+
+    public function __construct(private readonly ReportService $reports) {}
+
     public static function middleware(): array
     {
         return ['permission:reports.view'];
@@ -26,128 +36,146 @@ class ReportController extends Controller implements HasMiddleware
     public function index(Request $request): Response
     {
         [$from, $to] = $this->range($request);
+
+        $tab = in_array($request->query('report'), self::TABS, true)
+            ? $request->query('report')
+            : 'financial';
+
         $canSeeMoney = $request->user()->can('reports.financial');
 
+        // A member of staff without financial access lands on a tab they can read.
+        if (! $canSeeMoney && in_array($tab, ['financial', 'receivables', 'practitioners'], true)) {
+            $tab = 'clinical';
+        }
+
         return Inertia::render('Reports/Index', [
-            'filters' => ['from' => $from, 'to' => $to, 'report' => $request->query('report', 'financial')],
+            'filters' => ['from' => $from, 'to' => $to, 'report' => $tab],
             'canSeeMoney' => $canSeeMoney,
-
-            // گزارش مالی — income per day, split by payment method.
-            'financial' => $canSeeMoney ? [
-                'daily' => Payment::query()->between($from, $to)
-                    ->selectRaw('paid_on, SUM(amount) AS total, SUM(discount) AS discount, COUNT(*) AS count')
-                    ->groupBy('paid_on')->orderBy('paid_on')
-                    ->get()
-                    ->map(fn ($r) => [
-                        'date' => (string) $r->paid_on,
-                        'total' => (int) $r->total,
-                        'discount' => (int) $r->discount,
-                        'count' => (int) $r->count,
-                    ]),
-                'by_type' => Payment::query()->between($from, $to)
-                    ->selectRaw('payment_type_id, SUM(amount) AS total, COUNT(*) AS count')
-                    ->groupBy('payment_type_id')
-                    ->with('paymentType:id,name')
-                    ->get()
-                    ->map(fn ($r) => [
-                        'type' => $r->paymentType?->name ?? 'نامشخص',
-                        'total' => (int) $r->total,
-                        'count' => (int) $r->count,
-                    ]),
-                'summary' => [
-                    'total' => (int) Payment::between($from, $to)->sum('amount'),
-                    'discount' => (int) Payment::between($from, $to)->sum('discount'),
-                    'billed' => (int) Treatment::between($from, $to)->sum('amount'),
-                ],
-            ] : null,
-
-            // گزارش زیردرمان — which services were performed, and how often.
-            'services' => Treatment::query()->between($from, $to)
-                ->selectRaw('treatment_service_id, COUNT(*) AS count, SUM(amount) AS total')
-                ->groupBy('treatment_service_id')
-                ->orderByDesc('count')
-                ->with('service:id,name,treatment_category_id', 'service.category:id,name')
-                ->get()
-                ->map(fn ($r) => [
-                    'name' => $r->service?->name ?? 'نامشخص',
-                    'category' => $r->service?->category?->name,
-                    'count' => (int) $r->count,
-                    'total' => $request->user()->can('reports.financial') ? (int) $r->total : null,
-                ]),
-
-            // گزارش عکسبرداری — radiographs per day.
-            'radiographs' => Radiograph::query()
-                ->whereBetween('taken_on', [$from, $to])
-                ->selectRaw('taken_on, COUNT(*) AS count')
-                ->groupBy('taken_on')->orderBy('taken_on')
-                ->get()
-                ->map(fn ($r) => ['date' => (string) $r->taken_on, 'count' => (int) $r->count]),
-
-            // گزارش مریض‌ها — new files registered in the period.
-            'patients' => [
-                'new_count' => Patient::whereBetween('registered_on', [$from, $to])->count(),
-                'by_insurance' => Patient::query()
-                    ->whereBetween('registered_on', [$from, $to])
-                    ->selectRaw('insurance_id, COUNT(*) AS count')
-                    ->groupBy('insurance_id')
-                    ->with('insurance:id,name')
-                    ->get()
-                    ->map(fn ($r) => [
-                        'insurance' => $r->insurance?->name ?? 'آزاد',
-                        'count' => (int) $r->count,
-                    ]),
-            ],
-
-            // گزارش بدهکار/بستانکار — replaces dbo.getReminderMoney.
-            'debtors' => $canSeeMoney ? $this->debtors() : [],
+            'tabs' => $this->visibleTabs($canSeeMoney),
+            'data' => $this->dataFor($tab, $from, $to, $canSeeMoney),
         ]);
     }
 
-    /** CSV export of the debtor list — the report staff actually chase. */
+    /** @return array<string, mixed> */
+    private function dataFor(string $tab, string $from, string $to, bool $canSeeMoney): array
+    {
+        return match ($tab) {
+            'financial' => [
+                'summary' => [
+                    'collected' => (int) Payment::between($from, $to)->sum('amount'),
+                    'discount' => (int) Payment::between($from, $to)->sum('discount'),
+                    'billed' => (int) Treatment::between($from, $to)->sum('amount'),
+                    'transactions' => Payment::between($from, $to)->count(),
+                ],
+                'monthly' => $this->reports->monthlyBilledVsCollected(12),
+                'daily' => $this->reports->dailyIncome($from, $to),
+                'byType' => $this->reports->incomeByPaymentType($from, $to),
+            ],
+
+            'receivables' => $this->reports->receivablesAging(),
+
+            'clinical' => [
+                'services' => $this->maskMoney($this->reports->servicesPerformed($from, $to), $canSeeMoney),
+                'categories' => $this->maskMoney($this->reports->treatmentsByCategory($from, $to), $canSeeMoney),
+                'teeth' => $this->reports->toothFrequency($from, $to),
+                'total' => Treatment::between($from, $to)->count(),
+            ],
+
+            'practitioners' => [
+                'rows' => $this->reports->practitionerPerformance($from, $to),
+            ],
+
+            'patients' => [
+                'monthly' => $this->reports->newPatientsByMonth(12),
+                'mix' => $this->reports->patientMix(),
+                'referrals' => $this->reports->referralSources(),
+                'recall' => $this->reports->recallList(6),
+                'total' => Patient::count(),
+                'new' => Patient::whereBetween('registered_on', [$from, $to])->count(),
+            ],
+
+            'appointments' => $this->reports->appointmentAdherence($from, $to),
+
+            default => [],
+        };
+    }
+
+    /** Strip money columns for staff who may see counts but not values. */
+    private function maskMoney(array $rows, bool $canSeeMoney): array
+    {
+        if ($canSeeMoney) {
+            return $rows;
+        }
+
+        return array_map(fn (array $r) => [...$r, 'total' => null], $rows);
+    }
+
+    /** @return list<array{key: string, label: string}> */
+    private function visibleTabs(bool $canSeeMoney): array
+    {
+        $all = [
+            ['key' => 'financial', 'label' => 'مالی', 'money' => true],
+            ['key' => 'receivables', 'label' => 'مطالبات', 'money' => true],
+            ['key' => 'clinical', 'label' => 'درمان', 'money' => false],
+            ['key' => 'practitioners', 'label' => 'پزشکان', 'money' => true],
+            ['key' => 'patients', 'label' => 'بیماران', 'money' => false],
+            ['key' => 'appointments', 'label' => 'نوبت‌ها', 'money' => false],
+        ];
+
+        return array_values(array_map(
+            fn ($t) => ['key' => $t['key'], 'label' => $t['label']],
+            array_filter($all, fn ($t) => $canSeeMoney || ! $t['money']),
+        ));
+    }
+
+    /** Debtor list as CSV — the report staff actually chase. */
     public function exportDebtors(Request $request): StreamedResponse
     {
         abort_unless($request->user()->can('reports.export'), 403);
 
-        $rows = $this->debtors(limit: 5000);
+        $aging = $this->reports->receivablesAging();
 
-        return response()->streamDownload(function () use ($rows) {
+        return $this->csv('debtors-'.now()->format('Y-m-d').'.csv',
+            ['کد پرونده', 'نام بیمار', 'موبایل', 'مانده', 'قدیمی‌ترین درمان تسویه‌نشده', 'تا ۳۰ روز', '۳۱ تا ۶۰', '۶۱ تا ۹۰', 'بیش از ۹۰'],
+            array_map(fn ($r) => [
+                $r['code'], $r['name'], $r['mobile'], $r['outstanding'],
+                $r['oldest_unpaid'] ? JalaliDate::format($r['oldest_unpaid'], persianDigits: false) : '',
+                $r['buckets']['0-30'], $r['buckets']['31-60'], $r['buckets']['61-90'], $r['buckets']['90+'],
+            ], $aging['rows']),
+        );
+    }
+
+    /** Recall list as CSV, for a bulk SMS run. */
+    public function exportRecall(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()->can('reports.export'), 403);
+
+        $rows = $this->reports->recallList((int) $request->query('months', 6));
+
+        return $this->csv('recall-'.now()->format('Y-m-d').'.csv',
+            ['کد پرونده', 'نام بیمار', 'موبایل', 'آخرین مراجعه', 'ماه از آخرین مراجعه'],
+            array_map(fn ($r) => [
+                $r['code'], $r['name'], $r['mobile'],
+                $r['last_visit'] ? JalaliDate::format($r['last_visit'], persianDigits: false) : '',
+                $r['months'],
+            ], $rows),
+        );
+    }
+
+    private function csv(string $filename, array $header, array $rows): StreamedResponse
+    {
+        return response()->streamDownload(function () use ($header, $rows) {
             $out = fopen('php://output', 'w');
             // BOM so Excel opens the Persian text as UTF-8.
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['کد پرونده', 'نام بیمار', 'موبایل', 'مجموع درمان', 'پرداختی', 'تخفیف', 'مانده']);
+            fputcsv($out, $header);
 
-            foreach ($rows as $r) {
-                fputcsv($out, [
-                    $r['code'], $r['name'], $r['mobile'],
-                    $r['billed'], $r['paid'], $r['discount'], $r['balance'],
-                ]);
+            foreach ($rows as $row) {
+                fputcsv($out, $row);
             }
 
             fclose($out);
-        }, 'debtors-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
-    }
-
-    /** @return array<int, array<string, mixed>> */
-    private function debtors(int $limit = 200): array
-    {
-        return Patient::query()
-            ->withBalance()
-            ->get(['id', 'code', 'first_name', 'last_name', 'mobile'])
-            ->map(fn (Patient $p) => [
-                'id' => $p->id,
-                'code' => $p->code,
-                'name' => $p->full_name,
-                'mobile' => $p->mobile,
-                'billed' => (int) ($p->billed_total ?? 0),
-                'paid' => (int) ($p->paid_total ?? 0),
-                'discount' => (int) ($p->discount_total ?? 0),
-                'balance' => (int) ($p->billed_total ?? 0) - (int) ($p->paid_total ?? 0) - (int) ($p->discount_total ?? 0),
-            ])
-            ->filter(fn ($r) => $r['balance'] > 0)
-            ->sortByDesc('balance')
-            ->take($limit)
-            ->values()
-            ->all();
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /** @return array{0:string,1:string} */

@@ -119,6 +119,11 @@ class DemoDataSeeder extends Seeder
         for ($i = 0; $i < 60; $i++) {
             $registered = Carbon::now()->subDays(random_int(1, 900));
 
+            $referrers = [
+                null, null, 'تبلیغات اینستاگرام', 'معرفی بیمار قبلی', 'تابلوی مطب',
+                'دکتر رحیمی', 'بیمه تامین اجتماعی', 'جستجوی اینترنتی', 'معرفی همکار',
+            ];
+
             $patient = Patient::create([
                 'code' => Patient::nextCode(),
                 'first_name' => $first[array_rand($first)],
@@ -131,6 +136,7 @@ class DemoDataSeeder extends Seeder
                 'insurance_id' => $insurances->random()->id,
                 'created_by' => $reception->id,
                 'job' => ['کارمند', 'آزاد', 'دانشجو', 'خانه‌دار', 'بازنشسته'][random_int(0, 4)],
+                'referrer_name' => $referrers[array_rand($referrers)],
             ]);
 
             $billed = 0;
